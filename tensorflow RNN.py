@@ -6,6 +6,10 @@ Some modifications made to use GPU
 import tensorflow as tf
 print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
+config = tf.compat.v1.ConfigProto(
+        device_count = {'GPU': 0}
+    )
+sess = tf.compat.v1.Session(config=config)
 
 from tensorflow.keras.layers.experimental import preprocessing
 
@@ -52,10 +56,10 @@ sequences = ids_dataset.batch(seq_length+1, drop_remainder=True)
 for seq in sequences.take(1):
   print(chars_from_ids(seq))
 
-
 examples_per_epoch = len(text)//(seq_length+1)
 for seq in sequences.take(5):
   print(text_from_ids(seq).numpy())
+
 
 def split_input_target(sequence):
 	input_text = sequence[:-1]
@@ -114,10 +118,15 @@ model = MyModel(
 	vocab_size=len(ids_from_chars.get_vocabulary()),
 	embedding_dim=embedding_dim,
 	rnn_units=rnn_units)
+
 for input_example_batch, target_example_batch in dataset.take(1):
+	# print("Input shape: ", input_example_batch.shape, "\nTarget Shape: ",target_example_batch.shape)
+	# print(input_example_batch, target_example_batch)
 	example_batch_predictions = model(input_example_batch)
 	print(example_batch_predictions.shape, "# (batch_size, sequence_length, vocab_size)")
+
 model.summary()
+
 
 sampled_indices = tf.random.categorical(example_batch_predictions[0], num_samples=1)
 sampled_indices = tf.squeeze(sampled_indices, axis=-1).numpy()
@@ -143,7 +152,8 @@ checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
 	filepath=checkpoint_prefix,
 	save_weights_only=True)
 
-EPOCHS = 20
+EPOCHS = 30
+
 history = model.fit(dataset, epochs=EPOCHS, callbacks=[checkpoint_callback])
 
 class OneStep(tf.keras.Model):
@@ -165,6 +175,7 @@ class OneStep(tf.keras.Model):
 		self.prediction_mask = tf.sparse.to_dense(sparse_mask)
 
 	@tf.function
+	@tf.autograph.experimental.do_not_convert
 	def generate_one_step(self, inputs, states=None):
 		# Convert strings to token IDs.
 		input_chars = tf.strings.unicode_split(inputs, 'UTF-8')
@@ -189,7 +200,6 @@ class OneStep(tf.keras.Model):
 
 		# Return the characters and model state.
 		return predicted_chars, states
-	
 
 one_step_model = OneStep(model, chars_from_ids, ids_from_chars)
 start = time.time()

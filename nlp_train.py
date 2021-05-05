@@ -1,107 +1,63 @@
 import tensorflow as tf
+print()
+print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+print()
+config = tf.compat.v1.ConfigProto(
+        device_count = {'GPU': 0}
+    )
+sess = tf.compat.v1.Session(config=config)
+
 import string
-from tensorflow.keras.layers.experimental import preprocessing
 from tensorflow import keras
-from keras.layers import Dense, GRU, LSTM, RNN, Embedding
+from keras.layers.experimental import preprocessing
+from keras.layers import Dense, GRU, LSTM, RNN, Embedding, Dropout, BatchNormalization
 from keras import callbacks
+from keras.callbacks import ModelCheckpoint
+from keras.models import Sequential
+from keras.utils import np_utils
 
 import numpy as np
 import os
 import time
-
 print()
-CHUNK_LENGTH = 40
-STEP = 3
-LEARNING_RATE = 0.0005
+path_to_text_file = 'grimms.txt'
+text = open(path_to_text_file, 'r', encoding='utf-8').read()
+vocab = sorted(list(set(text)))
+char_to_int = dict((c, i) for i, c in enumerate(vocab))
+n_chars, vocab_size = len(text), len(vocab)
+print("Chars in text:", n_chars, "\nChars in vocab:", vocab_size, "---", vocab)
 
-path_to_file = 'grimms.txt'
-text = open(path_to_file, 'r').read()
-corpus_length = len(text)
-print(text[:10])
+def split_sequences(seq_length, text, vocab, char_to_int):
+	x, y = [], [], 
+	for i in range(0, len(text) - seq_length, 1):
+		sentence = text[i : i + seq_length]
+		next_char = text[i + seq_length]
+		x.append([char_to_int[char] for char in sentence])
+		y.append(char_to_int[next_char])
+	return x,y
 
-vocab = string.ascii_uppercase + string.ascii_lowercase + string.punctuation + string.digits + " \n"
-vocab_size = len(vocab)
-char2indices = dict(zip(vocab, range(len(vocab))))
-print(vocab)
+seq_length = 100
+x, y = split_sequences(seq_length, text, vocab, char_to_int)
+num_train_examples = len(x)
+print("Num training examples:", num_train_examples)
+x = np.reshape(x, (num_train_examples, seq_length, 1))
+x = x / float(vocab_size)
+y = np_utils.to_categorical(y)
 
+def get_model(in_shape, out_shape):
+	model = Sequential()
+	model.add(GRU(256, return_sequences=True, input_shape=in_shape))
+	model.add(Dropout(0.2))
+	model.add(GRU(256))
+	model.add(Dropout(0.2))
+	model.add(Dense(out_shape, activation='softmax'))
+	return model
 
-def simplify_text(text, vocab):
-	new_text = ""
-	for ch in text:
-		if ch in vocab:
-			new_text += ch
-	return new_text
-
-data = simplify_text(text, char2indices)
-print(f"Type of the data is: {type(data)}\n")
-print(f"Length of the data is: {len(data)}\n")
-print(f"The first couple of sentence of the data are:\n")
-print(data[:500])
-
-def encode(char, char2indices):
-	return char2indices[char]
-
-def encode_sentence(sent, char2indices):
-	return [encode(c, char2indices) for c in sent]
-
-def get_x_y(text, char_indices):
-	sentences = []
-	next_chars = []
-	for i in range(0, len(text) - CHUNK_LENGTH, STEP):
-		sentences.append(text[i : i + CHUNK_LENGTH])
-		next_chars.append(text[i + CHUNK_LENGTH])
-
-	print("Chunk length:", CHUNK_LENGTH)
-	print("Number of chunks:", len(sentences))
-
-	x = []
-	y = []
-	for i, sentence in enumerate(sentences):
-		x.append(encode_sentence(sentence, char_indices))
-		y.append(encode(next_chars[i], char_indices))
-
-	return np.array(x, dtype=bool), np.array(y, dtype=bool)
-
-x, y = get_x_y(data, char2indices)
-print("Shape of x is", x.shape)
-print("Shape of y is ", y.shape)
-
-class MyModel(tf.keras.Model):
-	def __init__(self, vocab_size, embedding_dim, rnn_units):
-		super().__init__(self)
-		self.embedding = tf.keras.layers.Embedding(vocab_size, embedding_dim)
-		self.gru = tf.keras.layers.GRU(rnn_units,
-									   return_sequences=True,
-									   return_state=True)
-		self.dense = tf.keras.layers.Dense(vocab_size)
-
-	def call(self, inputs, states=None, return_state=False, training=False):
-		x = inputs
-		x = self.embedding(x, training=training)
-		if states is None:
-			states = self.gru.get_initial_state(x)
-		x, states = self.gru(x, initial_state=states, training=training)
-		x = self.dense(x, training=training)
-
-		if return_state:
-			return x, states
-		else:
-			return x
-
-embedding_dim = 256
-rnn_units = 1024
-
-model = MyModel(
-	# Be sure the vocabulary size matches the `StringLookup` layers.
-	vocab_size=vocab_size,
-	embedding_dim=embedding_dim,
-	rnn_units=rnn_units)
-loss = tf.losses.SparseCategoricalCrossentropy(from_logits=True)
-model.compile(optimizer='adam', loss=loss)
-checkpoint_dir = './training_checkpoints'
-checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt_{epoch}")
-checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-    filepath=checkpoint_prefix,
-    save_weights_only=True)
-
+model = get_model((x.shape[1],x.shape[2]), y.shape[1])
+model.compile(loss='categorical_crossentropy', optimizer='adam')
 model.summary()
+filepath="weights-improvement-{epoch:02d}-{loss:.4f}.hdf5"
+checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=1, save_best_only=True, mode='min')
+callbacks_list = [checkpoint]
+
+model.fit(x, y, epochs=20, batch_size=128, callbacks=callbacks_list)
