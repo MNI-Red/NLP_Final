@@ -150,12 +150,14 @@ checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt_{epoch}")
 
 checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
 	filepath=checkpoint_prefix,
-	save_weights_only=True)
+	save_weights_only=True,
+	save_freq=5*64)
+
 
 EPOCHS = 10
 
 history = model.fit(dataset, epochs=EPOCHS, callbacks=[checkpoint_callback])
-tf.saved_model.save(model, "tensorflow_model")
+# tf.saved_model.save(model, "tensorflow_model")
 
 class OneStep(tf.keras.Model):
 	def __init__(self, model, chars_from_ids, ids_from_chars, temperature=1.0):
@@ -202,7 +204,14 @@ class OneStep(tf.keras.Model):
 		# Return the characters and model state.
 		return predicted_chars, states
 		
-# model = tf.keras.models.load_model("tensorflow_model")
+model = model = MyModel(
+	# Be sure the vocabulary size matches the `StringLookup` layers.
+	vocab_size=len(ids_from_chars.get_vocabulary()),
+	embedding_dim=embedding_dim,
+	rnn_units=rnn_units)
+latest = tf.train.latest_checkpoint(checkpoint_dir)
+model.load_wieghts(latest)
+
 one_step_model = OneStep(model, chars_from_ids, ids_from_chars)
 start = time.time()
 states = None
