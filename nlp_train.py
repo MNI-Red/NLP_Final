@@ -6,19 +6,15 @@ config = tf.compat.v1.ConfigProto(
         device_count = {'GPU': 0}
     )
 sess = tf.compat.v1.Session(config=config)
-
-import string
 from tensorflow import keras
 from keras.layers.experimental import preprocessing
-from keras.layers import Dense, GRU, LSTM, RNN, Embedding, Dropout, BatchNormalization
+from keras.layers import Dense, GRU, LSTM, RNN, Embedding, Dropout
 from keras import callbacks
 from keras.callbacks import ModelCheckpoint
 from keras.models import Sequential
 from keras.utils import np_utils
-
 import numpy as np
 import os
-import time
 print()
 path_to_text_file = 'grimms.txt'
 text = open(path_to_text_file, 'r', encoding='utf-8').read()
@@ -46,10 +42,10 @@ y = np_utils.to_categorical(y)
 
 def get_model(in_shape, out_shape):
 	model = Sequential()
-	model.add(GRU(256, return_sequences=True, input_shape=in_shape))
-	model.add(Dropout(0.2))
-	model.add(GRU(256))
-	model.add(Dropout(0.2))
+	model.add(GRU(1024, input_shape=in_shape))
+	# model.add(Dropout(0.2))
+	# model.add(GRU(256))
+	# model.add(Dropout(0.2))
 	model.add(Dense(out_shape, activation='softmax'))
 	return model
 
@@ -57,7 +53,13 @@ model = get_model((x.shape[1],x.shape[2]), y.shape[1])
 model.compile(loss='categorical_crossentropy', optimizer='adam')
 model.summary()
 filepath="weights-improvement-{epoch:02d}-{loss:.4f}.hdf5"
-checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=1, save_best_only=True, mode='min')
-callbacks_list = [checkpoint]
+checkpoint_dir = './my_training_checkpoints'
+# Name of the checkpoint files
+checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt_{epoch}")
+checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+	filepath=checkpoint_prefix,
+	save_weights_only=True)
 
-model.fit(x, y, epochs=20, batch_size=128, callbacks=callbacks_list)
+model.fit(x, y, epochs=20, batch_size=256, callbacks=[checkpoint_callback])
+
+model.save('my_model')
