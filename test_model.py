@@ -19,19 +19,18 @@ import time
 path_to_file = 'grimms.txt'
 # model_name = "my_model"
 model_name = "tensorflow_model"
-model = tf.saved_model.load(model_name)
-if model_name == "my_model":
-	pass
-else:
-	# Read, then decode for py2 compat.
-	text = open(path_to_file, 'rb').read().decode(encoding='utf-8')
-	vocab = sorted(set(text))
-	ids_from_chars = preprocessing.StringLookup(
-		vocabulary=list(vocab))
-	chars_from_ids = tf.keras.layers.experimental.preprocessing.StringLookup(
-		vocabulary=ids_from_chars.get_vocabulary(), invert=True)
 
-	class OneStep(tf.keras.Model):
+text = open(path_to_file, 'rb').read().decode(encoding='utf-8')
+vocab = sorted(set(text))
+
+model = keras.models.load_model(model_name)
+
+ids_from_chars = preprocessing.StringLookup(
+	vocabulary=list(vocab))
+chars_from_ids = tf.keras.layers.experimental.preprocessing.StringLookup(
+	vocabulary=ids_from_chars.get_vocabulary(), invert=True)
+
+class OneStep(tf.keras.Model):
 		def __init__(self, model, chars_from_ids, ids_from_chars, temperature=1.0):
 			super().__init__()
 			self.temperature = temperature
@@ -75,6 +74,30 @@ else:
 
 			# Return the characters and model state.
 			return predicted_chars, states
+	
+one_step_model = OneStep(model, chars_from_ids, ids_from_chars)
+start = time.time()
+states = None
+next_char = tf.constant(['Once upon a time'])
+result = [next_char]
+
+for n in range(1000):
+  next_char, states = one_step_model.generate_one_step(next_char, states=states)
+  result.append(next_char)
+
+result = tf.strings.join(result)
+end = time.time()
+print(result[0].numpy().decode('utf-8'), '\n\n' + '_'*80)
+print('\nRun time:', end - start)	
+"""
+if model_name == "my_model":
+	model = keras.models.load_model(model_name)
+	char_to_int = dict((c, i) for i, c in enumerate(vocab))
+	seed = tf.constant(['Once upon a time'])
+	one_step_model = OneStep(model, chars_from_ids, ids_from_chars)
+
+else:
+	# Read, then decode for py2 compat.
 	one_step_model = OneStep(model, chars_from_ids, ids_from_chars)
 	start = time.time()
 	states = None
@@ -91,3 +114,4 @@ else:
 	print('\nRun time:', end - start)
 
 	tf.saved_model.save(one_step_model, './models/one_step')
+"""

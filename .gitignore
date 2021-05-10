@@ -1,4 +1,4 @@
-__pycache__/*
-models/*
-my_training_checkpoints/*
-tensorflow_training_checkpoints/*
+__pycache__/
+models/
+my_training_checkpoints/
+tensorflow_training_checkpoints/

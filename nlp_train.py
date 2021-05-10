@@ -40,18 +40,32 @@ x = np.reshape(x, (num_train_examples, seq_length, 1))
 x = x / float(vocab_size)
 y = np_utils.to_categorical(y)
 
+def split_into_batches(x,y, batch_size, seq_length):
+	remainder = len(x)%batch_size
+	x, y = x[:-remainder], y[:-remainder]
+	# new_x, new_y = [], []
+	# for i in range(0, len(x)-batch_size, batch_size):
+	x = np.reshape(x, (len(x)//batch_size, batch_size, seq_length))
+	y = np.reshape(y, (len(y)//batch_size, batch_size, y.shape[1]))
+	return x, y
+
+# x, y = split_into_batches(x,y,64,seq_length)
+
+print(x.shape, y.shape)
+# exit()
+
 def get_model(in_shape, out_shape):
 	model = Sequential()
-	model.add(GRU(1024, input_shape=in_shape))
+	model.add(GRU(128, input_shape=in_shape))
 	# model.add(Dropout(0.2))
 	# model.add(GRU(256))
 	# model.add(Dropout(0.2))
 	model.add(Dense(out_shape, activation='softmax'))
 	return model
 
-model = get_model((x.shape[1],x.shape[2]), y.shape[1])
+model = get_model((x.shape[1], x.shape[2]), y.shape[1])
 model.compile(loss='categorical_crossentropy', optimizer='adam')
-model.summary()
+# model.summary()
 filepath="weights-improvement-{epoch:02d}-{loss:.4f}.hdf5"
 checkpoint_dir = './my_training_checkpoints'
 # Name of the checkpoint files
@@ -60,6 +74,9 @@ checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
 	filepath=checkpoint_prefix,
 	save_weights_only=True)
 
-model.fit(x, y, epochs=20, batch_size=256, callbacks=[checkpoint_callback])
+history = model.fit(x[100:], y[100:], epochs=1, callbacks=[checkpoint_callback])
 
 model.save('my_model')
+
+loaded = keras.models.load_model('my_model')
+loaded.summary()

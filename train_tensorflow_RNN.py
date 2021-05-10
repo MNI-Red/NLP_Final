@@ -6,10 +6,10 @@ Some modifications made to use GPU
 import tensorflow as tf
 print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
-config = tf.compat.v1.ConfigProto(
-        device_count = {'GPU': 0}
-    )
-sess = tf.compat.v1.Session(config=config)
+# config = tf.compat.v1.ConfigProto(
+#         device_count = {'GPU': 0}
+#     )
+# sess = tf.compat.v1.Session(config=config)
 
 from tensorflow.keras.layers.experimental import preprocessing
 
@@ -154,11 +154,15 @@ checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
 	save_freq=5*64)
 
 
-EPOCHS = 10
-
+EPOCHS = 1
+for x, y in dataset.take(1):
+	print(x.shape, y.shape)
+	print(x,y)
+print(np.array(list(dataset.as_numpy_iterator())).shape, list(dataset.as_numpy_iterator())[0])
+# exit()
 history = model.fit(dataset, epochs=EPOCHS, callbacks=[checkpoint_callback])
-# tf.saved_model.save(model, "tensorflow_model")
-
+model.save("tensorflow_model")
+exit()
 class OneStep(tf.keras.Model):
 	def __init__(self, model, chars_from_ids, ids_from_chars, temperature=1.0):
 		super().__init__()
@@ -215,7 +219,7 @@ model.load_wieghts(latest)
 one_step_model = OneStep(model, chars_from_ids, ids_from_chars)
 start = time.time()
 states = None
-next_char = tf.constant(['The King '])
+next_char = tf.constant(['Once upon a time, '])
 result = [next_char]
 
 for n in range(1000):
