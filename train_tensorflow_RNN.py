@@ -208,7 +208,7 @@ class OneStep(tf.keras.Model):
 		# Return the characters and model state.
 		return predicted_chars, states
 		
-model = model = MyModel(
+model = MyModel(
 	# Be sure the vocabulary size matches the `StringLookup` layers.
 	vocab_size=len(ids_from_chars.get_vocabulary()),
 	embedding_dim=embedding_dim,
