@@ -59,7 +59,7 @@ if task == 't':
 
 	def get_model(in_shape, out_shape):
 		model = Sequential()
-		model.add(GRU(128, input_shape=in_shape))
+		model.add(GRU(512, input_shape=in_shape))
 		# model.add(Dropout(0.2))
 		# model.add(GRU(256))
 		# model.add(Dropout(0.2))
@@ -81,7 +81,7 @@ if task == 't':
 		filepath=checkpoint_prefix,
 		save_weights_only=True)
 
-	history = model.fit(x, y, epochs=2, callbacks=[checkpoint_callback])
+	history = model.fit(x, y, epochs=3, callbacks=[checkpoint_callback])
 
 	model.save('my_model')
 else:
@@ -105,5 +105,9 @@ else:
 
 	from collections import Counter
 	counts = Counter(results)
-	print(results, counts)
-
+	print(results, '\n', counts, '\n')
+	with open("my_output.txt", 'a') as f:
+		f.write(results)
+		f.write('\n')
+		f.write(str(counts))
+		f.write('\n')

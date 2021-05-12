@@ -154,7 +154,7 @@ checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
 	save_freq=5*64)
 
 
-EPOCHS = 1
+EPOCHS = 30
 for x, y in dataset.take(1):
 	print(x.shape, y.shape)
 	print(x,y)
@@ -162,7 +162,6 @@ print(np.array(list(dataset.as_numpy_iterator())).shape, list(dataset.as_numpy_i
 # exit()
 history = model.fit(dataset, epochs=EPOCHS, callbacks=[checkpoint_callback])
 model.save("tensorflow_model")
-exit()
 class OneStep(tf.keras.Model):
 	def __init__(self, model, chars_from_ids, ids_from_chars, temperature=1.0):
 		super().__init__()
@@ -213,8 +212,8 @@ model = MyModel(
 	vocab_size=len(ids_from_chars.get_vocabulary()),
 	embedding_dim=embedding_dim,
 	rnn_units=rnn_units)
-latest = tf.train.latest_checkpoint(checkpoint_dir)
-model.load_wieghts(latest)
+# latest = tf.train.latest_checkpoint(checkpoint_dir)
+# model.load_wieghts(latest)
 
 one_step_model = OneStep(model, chars_from_ids, ids_from_chars)
 start = time.time()
@@ -242,7 +241,8 @@ for n in range(100):
   next_char, states = one_step_reloaded.generate_one_step(next_char, states=states)
   result.append(next_char)
 
-print(tf.strings.join(result)[0].numpy().decode("utf-8"))
+with(open('tf_output.txt', 'a')) as f:
+	print(tf.strings.join(result)[0].numpy().decode("utf-8"))
 """
 class CustomTraining(MyModel):
 	@tf.function

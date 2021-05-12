@@ -2,3 +2,4 @@ __pycache__/
 models/
 my_training_checkpoints/
 tensorflow_training_checkpoints/
+training_checkpoints/
