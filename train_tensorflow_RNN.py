@@ -230,8 +230,8 @@ end = time.time()
 print(result[0].numpy().decode('utf-8'), '\n\n' + '_'*80)
 print('\nRun time:', end - start)
 
-tf.saved_model.save(one_step_model, './models/one_step')
-one_step_reloaded = tf.saved_model.load('./models/one_step')
+# tf.saved_model.save(one_step_model, './models/one_step')
+# one_step_reloaded = tf.saved_model.load('./models/one_step')
 
 states = None
 next_char = tf.constant(['The King '])
@@ -241,6 +241,7 @@ for n in range(100):
   next_char, states = one_step_reloaded.generate_one_step(next_char, states=states)
   result.append(next_char)
 
+print(tf.strings.join(result)[0].numpy().decode("utf-8"))
 with(open('tf_output.txt', 'a')) as f:
 	print(tf.strings.join(result)[0].numpy().decode("utf-8"))
 """

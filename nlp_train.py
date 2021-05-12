@@ -59,7 +59,7 @@ if task == 't':
 
 	def get_model(in_shape, out_shape):
 		model = Sequential()
-		model.add(GRU(512, input_shape=in_shape))
+		model.add(GRU(512, input_shape=in_shape, return_states = True))
 		# model.add(Dropout(0.2))
 		# model.add(GRU(256))
 		# model.add(Dropout(0.2))
@@ -86,8 +86,8 @@ if task == 't':
 	model.save('my_model')
 else:
 	loaded = keras.models.load_model('my_model')
-	loaded.summary()
-
+	print(loaded.summary())
+	
 	seed = "Once upon a time,"
 	x = tf.convert_to_tensor([char_to_int[char] for char in seed])
 	x = np.reshape(x, (1,len(x),1))
@@ -97,11 +97,14 @@ else:
 	# y = vocab[np.argmax(y)]
 	results += vocab[np.argmax(y)]
 	print(vocab, y, np.argmax(y))
+	states = []
 	for i in range(500):
 		x = tf.convert_to_tensor([char_to_int[char] for char in results])
 		x = np.reshape(x, (1,len(x),1))
 		y = loaded.predict_step(x)
+		states.append(loaded.get_layer('gru').states)
 		results += vocab[np.argmax(y)]
+	print(states)
 
 	from collections import Counter
 	counts = Counter(results)
