@@ -3,3 +3,4 @@ models/
 my_training_checkpoints/
 tensorflow_training_checkpoints/
 training_checkpoints/
+tensorflow_model/

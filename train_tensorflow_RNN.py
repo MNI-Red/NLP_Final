@@ -91,7 +91,7 @@ vocab_size = len(vocab)
 embedding_dim = 256
 
 # Number of RNN units
-rnn_units = 1024
+rnn_units = 2048
 class MyModel(tf.keras.Model):
 	def __init__(self, vocab_size, embedding_dim, rnn_units):
 		super().__init__(self)
@@ -127,7 +127,6 @@ for input_example_batch, target_example_batch in dataset.take(1):
 
 model.summary()
 
-
 sampled_indices = tf.random.categorical(example_batch_predictions[0], num_samples=1)
 sampled_indices = tf.squeeze(sampled_indices, axis=-1).numpy()
 
@@ -154,7 +153,7 @@ checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
 	save_freq=5*64)
 
 
-EPOCHS = 30
+EPOCHS = 40
 for x, y in dataset.take(1):
 	print(x.shape, y.shape)
 	print(x,y)
@@ -207,11 +206,11 @@ class OneStep(tf.keras.Model):
 		# Return the characters and model state.
 		return predicted_chars, states
 		
-model = MyModel(
-	# Be sure the vocabulary size matches the `StringLookup` layers.
-	vocab_size=len(ids_from_chars.get_vocabulary()),
-	embedding_dim=embedding_dim,
-	rnn_units=rnn_units)
+# model = MyModel(
+# 	# Be sure the vocabulary size matches the `StringLookup` layers.
+# 	vocab_size=len(ids_from_chars.get_vocabulary()),
+# 	embedding_dim=embedding_dim,
+# 	rnn_units=rnn_units)
 # latest = tf.train.latest_checkpoint(checkpoint_dir)
 # model.load_wieghts(latest)
 
@@ -227,7 +226,8 @@ for n in range(1000):
 
 result = tf.strings.join(result)
 end = time.time()
-print(result[0].numpy().decode('utf-8'), '\n\n' + '_'*80)
+once = result[0].numpy().decode('utf-8')
+print(once, '\n\n' + '_'*80)
 print('\nRun time:', end - start)
 
 # tf.saved_model.save(one_step_model, './models/one_step')
@@ -237,13 +237,18 @@ states = None
 next_char = tf.constant(['The King '])
 result = [next_char]
 
-for n in range(100):
+for n in range(1000):
   next_char, states = one_step_model.generate_one_step(next_char, states=states)
   result.append(next_char)
-
-print(tf.strings.join(result)[0].numpy().decode("utf-8"))
+print('yeet')
+king = tf.strings.join(result)[0].numpy().decode("utf-8")
+print(king)
+print()
 with(open('tf_output.txt', 'a')) as f:
-	print(tf.strings.join(result)[0].numpy().decode("utf-8"))
+	f.write(once)
+	f.write('\n')
+	f.write(king)
+	f.write('\n')
 """
 class CustomTraining(MyModel):
 	@tf.function
