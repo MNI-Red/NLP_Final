@@ -50,6 +50,7 @@ if task == 't':
 	sampled_data = sample(zipped, len(x)//10)
 	unzipped = list(zip(*sampled_data))
 	x, y = np.array(unzipped[0]), np.array(unzipped[1])
+	# x = np.reshape(x, (x.shape[0], x.shape[1]))
 	print(x.shape, y.shape)
 
 	def split_into_batches(x,y, batch_size, seq_length):
@@ -61,25 +62,22 @@ if task == 't':
 		y = np.reshape(y, (len(y)//batch_size, batch_size, y.shape[1]))
 		return x, y
 
-	# x, y = split_into_batches(x,y,64,seq_length)
-
-	# print(x.shape, y.shape)
-	# exit()
-
 	def get_model(in_shape, out_shape):
 		model = Sequential()
-		model.add(GRU(512, input_shape=in_shape, return_states = True))
+		model.add(GRU(512, input_shape=in_shape, return_sequences = True))
 		# model.add(Dropout(0.2))
 		# model.add(GRU(256))
 		# model.add(Dropout(0.2))
-		model.add(Dense(out_shape, activation='softmax'))
+		model.add(Dense(len(vocab), activation='softmax'))
 		return model
 
-	try:
-		model = keras.models.load_model('my_model')
-	except FileNotFoundError:
-		model = get_model((x.shape[1], x.shape[2]), y.shape[1])
+	# try:
+	# 	model = keras.models.load_model('my_model')
+	# except FileNotFoundError:
 
+	model = get_model(x.shape[1:], y.shape)
+	# print(x.shape, y.shape)
+		
 	model.compile(loss='categorical_crossentropy', optimizer='adam')
 	# model.summary()
 	filepath="weights-improvement-{epoch:02d}-{loss:.4f}.hdf5"
@@ -90,7 +88,7 @@ if task == 't':
 		filepath=checkpoint_prefix,
 		save_weights_only=True)
 
-	history = model.fit(x, y, epochs=50, callbacks=[checkpoint_callback])
+	history = model.fit(x, y, epochs=1, callbacks=[checkpoint_callback])
 
 	model.save('my_model')
 else:
@@ -109,14 +107,15 @@ else:
 	y = vocab[np.argmax(y)]
 	results += vocab[np.argmax(y)]
 	print(vocab, y, np.argmax(y))
-	states = []
+	# states = []
 	state = None
 	for i in range(500):
 		x = tf.convert_to_tensor([char_to_int[char] for char in results])
 		x = np.reshape(x, (1,len(x),1))
 		# print(x, state)
-		# y, state = gru(x, initial_state = state, training = False)
-		# y = dense(y, training = False)
+		y, state_h = gru(x, initial_state = state)
+		y = dense(y)
+		print(y, )
 		y = loaded.predict_step(x)
 		# state = loaded.get_layer('gru').states
 		# states.append(state)
