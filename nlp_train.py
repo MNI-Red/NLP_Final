@@ -15,6 +15,7 @@ from keras.models import Sequential
 from keras.utils import np_utils
 import numpy as np
 import os
+from random import sample
 print()
 
 task = input('wut: ')
@@ -22,6 +23,7 @@ path_to_text_file = 'grimms.txt'
 text = open(path_to_text_file, 'r', encoding='utf-8').read()
 vocab = sorted(list(set(text)))
 char_to_int = dict((c, i) for i, c in enumerate(vocab))
+int_to_char = dict((i,c) for i, c in enumerate(vocab))
 n_chars, vocab_size = len(text), len(vocab)
 print("Chars in text:", n_chars, "\nChars in vocab:", vocab_size, "---", vocab)
 
@@ -42,6 +44,13 @@ if task == 't':
 	x = np.reshape(x, (num_train_examples, seq_length, 1))
 	x = x / float(vocab_size)
 	y = np_utils.to_categorical(y)
+	
+	# print(x.shape, y.shape)
+	zipped = list(zip(x,y))
+	sampled_data = sample(zipped, len(x)//10)
+	unzipped = list(zip(*sampled_data))
+	x, y = np.array(unzipped[0]), np.array(unzipped[1])
+	print(x.shape, y.shape)
 
 	def split_into_batches(x,y, batch_size, seq_length):
 		remainder = len(x)%batch_size
@@ -54,7 +63,7 @@ if task == 't':
 
 	# x, y = split_into_batches(x,y,64,seq_length)
 
-	print(x.shape, y.shape)
+	# print(x.shape, y.shape)
 	# exit()
 
 	def get_model(in_shape, out_shape):
@@ -81,30 +90,39 @@ if task == 't':
 		filepath=checkpoint_prefix,
 		save_weights_only=True)
 
-	history = model.fit(x, y, epochs=3, callbacks=[checkpoint_callback])
+	history = model.fit(x, y, epochs=50, callbacks=[checkpoint_callback])
 
 	model.save('my_model')
 else:
 	loaded = keras.models.load_model('my_model')
 	print(loaded.summary())
 	
-	seed = "Once upon a time,"
+	gru = loaded.get_layer('gru')
+	dense = loaded.get_layer('dense')
+
+	seed = "The King"
 	x = tf.convert_to_tensor([char_to_int[char] for char in seed])
 	x = np.reshape(x, (1,len(x),1))
 	print(x)
 	results = seed
 	y = loaded.predict_step(x)
-	# y = vocab[np.argmax(y)]
+	y = vocab[np.argmax(y)]
 	results += vocab[np.argmax(y)]
 	print(vocab, y, np.argmax(y))
 	states = []
+	state = None
 	for i in range(500):
 		x = tf.convert_to_tensor([char_to_int[char] for char in results])
 		x = np.reshape(x, (1,len(x),1))
+		# print(x, state)
+		# y, state = gru(x, initial_state = state, training = False)
+		# y = dense(y, training = False)
 		y = loaded.predict_step(x)
-		states.append(loaded.get_layer('gru').states)
+		# state = loaded.get_layer('gru').states
+		# states.append(state)
+		
 		results += vocab[np.argmax(y)]
-	print(states)
+	# print(states)
 
 	from collections import Counter
 	counts = Counter(results)

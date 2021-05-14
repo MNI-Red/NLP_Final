@@ -148,9 +148,9 @@ checkpoint_dir = './training_checkpoints'
 checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt_{epoch}")
 
 checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-	filepath=checkpoint_prefix,
+	filepath = checkpoint_prefix,
 	save_weights_only=True,
-	save_freq=5*64)
+	save_freq=100*64)
 
 
 EPOCHS = 40
@@ -245,6 +245,7 @@ king = tf.strings.join(result)[0].numpy().decode("utf-8")
 print(king)
 print()
 with(open('tf_output.txt', 'a')) as f:
+	f.write("\nRNN units: " + str(rnn_units)+ ' Epochs: ' + str(EPOCHS) + "\n")
 	f.write(once)
 	f.write('\n')
 	f.write(king)
