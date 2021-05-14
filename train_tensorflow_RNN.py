@@ -16,6 +16,7 @@ from tensorflow.keras.layers.experimental import preprocessing
 import numpy as np
 import os
 import time
+# import keras
 path_to_file = 'grimms.txt'
 
 # Read, then decode for py2 compat.
@@ -153,14 +154,18 @@ checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
 	save_freq=100*64)
 
 
-EPOCHS = 40
+EPOCHS = 1
 for x, y in dataset.take(1):
 	print(x.shape, y.shape)
 	print(x,y)
 print(np.array(list(dataset.as_numpy_iterator())).shape, list(dataset.as_numpy_iterator())[0])
 # exit()
 history = model.fit(dataset, epochs=EPOCHS, callbacks=[checkpoint_callback])
-model.save("tensorflow_model")
+# model.save("tf_model")
+# exit()
+# model.save("tensorflow_model")
+# model = tf.keras.models.load_model('tf_model')
+model = tf.saved_model.load('tf_model')
 class OneStep(tf.keras.Model):
 	def __init__(self, model, chars_from_ids, ids_from_chars, temperature=1.0):
 		super().__init__()

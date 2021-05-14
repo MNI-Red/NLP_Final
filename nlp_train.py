@@ -9,7 +9,7 @@ sess = tf.compat.v1.Session(config=config)
 from tensorflow import keras
 from keras.layers.experimental import preprocessing
 from keras.layers import Dense, GRU, LSTM, RNN, Embedding, Dropout
-from keras import callbacks
+from keras import callbacks, Model
 from keras.callbacks import ModelCheckpoint
 from keras.models import Sequential
 from keras.utils import np_utils
@@ -62,20 +62,44 @@ if task == 't':
 		y = np.reshape(y, (len(y)//batch_size, batch_size, y.shape[1]))
 		return x, y
 
-	def get_model(in_shape, out_shape):
+	def get_model(in_shape):
 		model = Sequential()
-		model.add(GRU(512, input_shape=in_shape, return_sequences = True))
-		# model.add(Dropout(0.2))
-		# model.add(GRU(256))
-		# model.add(Dropout(0.2))
+		model.add(GRU(512, input_shape=in_shape))
 		model.add(Dense(len(vocab), activation='softmax'))
 		return model
+		# inp = tf.keras.Input(shape=in_shape)
+		# embedding = tf.keras.layers.Embedding(vocab_size, embedding_dim)
+		# gru, state = GRU(512, return_sequences = True, return_state= True)(embedding)
+		# dense = Dense(len(vocab), activation='softmax')(gru)
+		# return Model(inputs=inp, outputs=dense)
+		
 
-	# try:
-	# 	model = keras.models.load_model('my_model')
-	# except FileNotFoundError:
 
-	model = get_model(x.shape[1:], y.shape)
+	class MyModel(tf.keras.Model):
+		def __init__(self, vocab_size, in_shape):
+			super().__init__(self)
+			self.gru = tf.keras.layers.GRU(512,
+										   return_sequences=True,
+										   return_state=True)
+			self.dense = tf.keras.layers.Dense(vocab_size)
+
+		def call(self, inputs, states=None, return_state=False, training=False):
+			x = inputs
+			if states is None:
+			  states = self.gru.get_initial_state(x)
+			x, states = self.gru(x, initial_state=states, training=training)
+			x = self.dense(x, training=training)
+
+			if return_state:
+			  return x, states
+			else:
+			  return x
+	try:
+		model = keras.models.load_model('my_model')
+	except FileNotFoundError:
+		model = get_model((x.shape[1], x.shape[2]))
+		
+	# model = MyModel(len(vocab), x.shape)
 	# print(x.shape, y.shape)
 		
 	model.compile(loss='categorical_crossentropy', optimizer='adam')
@@ -88,7 +112,7 @@ if task == 't':
 		filepath=checkpoint_prefix,
 		save_weights_only=True)
 
-	history = model.fit(x, y, epochs=1, callbacks=[checkpoint_callback])
+	history = model.fit(x, y, epochs=10, callbacks=[checkpoint_callback])
 
 	model.save('my_model')
 else:
