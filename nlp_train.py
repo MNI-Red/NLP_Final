@@ -73,8 +73,6 @@ if task == 't':
 		# dense = Dense(len(vocab), activation='softmax')(gru)
 		# return Model(inputs=inp, outputs=dense)
 		
-
-
 	class MyModel(tf.keras.Model):
 		def __init__(self, vocab_size, in_shape):
 			super().__init__(self)
@@ -96,6 +94,7 @@ if task == 't':
 			  return x
 	try:
 		model = keras.models.load_model('my_model')
+		print('-'*80, '\nloaded\n', '-'*80)
 	except FileNotFoundError:
 		model = get_model((x.shape[1], x.shape[2]))
 		
@@ -112,7 +111,7 @@ if task == 't':
 		filepath=checkpoint_prefix,
 		save_weights_only=True)
 
-	history = model.fit(x, y, epochs=10, callbacks=[checkpoint_callback])
+	history = model.fit(x, y, epochs=1, callbacks=[checkpoint_callback])
 
 	model.save('my_model')
 else:
@@ -131,21 +130,27 @@ else:
 	y = vocab[np.argmax(y)]
 	results += vocab[np.argmax(y)]
 	print(vocab, y, np.argmax(y))
-	# states = []
+	states = []
 	state = None
+	last = None
 	for i in range(500):
 		x = tf.convert_to_tensor([char_to_int[char] for char in results])
 		x = np.reshape(x, (1,len(x),1))
 		# print(x, state)
-		y, state_h = gru(x, initial_state = state)
-		y = dense(y)
-		print(y, )
+		# y, state_h = gru(x, initial_state = state)
+		# y = dense(y)
+		# print(y, )
 		y = loaded.predict_step(x)
-		# state = loaded.get_layer('gru').states
-		# states.append(state)
+		predicted_char = vocab[np.argmax(y)] 
+		while predicted_char == last:
+			y = loaded.predict_step(x)
+			predicted_char = vocab[np.argmax(y)] 
+		last = predicted_char
+		state = loaded.get_layer('gru').states
+		states.append(state)
 		
-		results += vocab[np.argmax(y)]
-	# print(states)
+		results += predicted_char
+	print(states)
 
 	from collections import Counter
 	counts = Counter(results)
